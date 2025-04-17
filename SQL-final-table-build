@@ -1,0 +1,40 @@
+select * 
+    ,case when engagement_score <.33 then 'red' 
+        when engagement_score >=.33 and engagement_score <.66 then 'yellow'
+        else 'green' end as engagement_rank
+    ,case when proficency_score <0 then 'red'
+        when proficency_score = 0 then 'yellow'
+        else 'green' end as prof_rank
+    ,case when support_use_score <.28 then 'red' else 'green' end as support_rank
+    ,case when outcome_asof_week = 'completed' then 'graduated'
+        when outcome_asof_week = 'withdrawn' then 'withdrawn'
+        when days_logged_in_this_week = 0 and met_gs_hours = 0 and attended_mentorship_this_week = 0 then 'idle'
+        when engagement_score is null then 'idle'
+        else concat(case when engagement_rank = 'green' then 'Strong Engagement;'
+                when engagement_rank = 'yellow' then 'Decent Engagement;'
+                when engagement_rank = 'red' then 'Poor Engagement; '
+                end,
+                case when prof_rank = 'green' and support_rank = 'green' then 'Proficiency with Support'
+                    when prof_rank = 'green' and support_rank = 'red' then 'Proficiency without Support'
+                    when support_rank = 'red' then 'Struggling without support'
+                    else 'Struggling with support' end )
+        end as weekly_segment_long_hand_group
+    , case when outcome_asof_week = 'completed' then '🎓'
+        when outcome_asof_week = 'withdrawn' then '❌ ❌'
+        when days_logged_in_this_week = 0 and met_gs_hours = 0 and attended_mentorship_this_week = 0 then '❌'
+        when engagement_score is null then '❌' 
+        else concat(case when engagement_rank = 'green' then '🟢  '
+                    when engagement_rank = 'yellow' then '🟡  '
+                    when engagement_rank = 'red' then '🔴  ' 
+                    end,
+                    case when prof_rank = 'green' and support_rank = 'green' then '🧠 👥'
+                       when prof_rank = 'green' and support_rank = 'red' then '🧠 👤'
+                       when support_rank = 'red' then '❓ 👤' 
+                       else '❓ 👥' end 
+                    )
+                end as weekly_seg_short_hand_group
+    ,lead(weekly_segment_long_hand_group,1) over(partition by enrollment_id order by week_number) as next_week_seg_long_hand
+    ,lead(weekly_seg_short_hand_group,1) over(partition by enrollment_id order by week_number) as next_week_seg_short_hand
+    ,case when next_week_seg_long_hand = 'idle' then 0 else 1 end as returned_next_week_outcome
+from weekly_seg_tab
+order by enrollment_id, week_number
