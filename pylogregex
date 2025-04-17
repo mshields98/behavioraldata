@@ -1,0 +1,69 @@
+#Build out Logistical Regression to test all metrics
+
+
+# Set the x, independent variables for the test model
+x_short_features= short_features_df
+
+# Set the y, dependent variable for the test model 
+y_metric = out_df_cleaned['subbed_nxt_week_outcome']
+
+# Set the training and test lists. This splits the data so 80% is used to train the model and then 20 % is used to test
+x_train_metrics, x_test_metrics, y_train_metric, y_test_metric = train_test_split(x_short_features, y_metric, test_size=0.2, random_state=42)
+
+#Set the model to logistical regression and train using train data
+model= LogisticRegression()
+model.fit(x_train_metrics,y_train_metric)
+
+#Have model make predictions on test set 
+y_predict_metric = model.predict(x_test_metrics)
+
+##Evaluate Statistical Outputs 
+
+#Accuracy: This tells us how accurate the model created was at predicting the test model (80% or higher is considered good). The number of samples correctly classified out of all the samples present in the test set.
+accuracy = accuracy_score(y_test_metric,y_predict_metric) 
+
+#Confusion Matrix: This gives the error matrix and shows how many predictions are correct and incorrect per class. 
+conf_matrix = confusion_matrix(y_test_metric, y_predict_metric)
+
+#Classificatin Report: 
+class_report= classification_report(y_test_metric, y_predict_metric)
+
+#Get the features weights: This tells us how important each feature is to predicting the outcome 
+all_features_weights = model.coef_[0]
+
+#Map the feature names to weight for readaiblity 
+feature_weight_dict = dict(zip(x_test_metrics.columns, all_features_weights))
+
+#Sort Features by weight 
+sorted_feature_weights = sorted(feature_weight_dict.items(), key=lambda x: x[1], reverse = True)
+
+
+#Print Analysis 
+print('*'*20)
+print('***Statical Analysis Output***')
+print('')
+print('---' *20)
+print(f'Accuracy: {accuracy}')
+print('---' *20)
+print('Confusion Matrix:')
+print(conf_matrix)
+print('')
+print('---' *20)
+print('')
+print('Classification Report:')
+print(class_report)
+print('')
+print('---' *20)
+print("Feature Weights:")
+for feature, weight in sorted_feature_weights:
+    print(f"{feature}: {weight}")
+    print('')
+
+#Make Plot for Weight Features 
+plt.figure(figsize=(10,6))
+plt.barh(range(len(sorted_feature_weights)),[weight for feature, weight in sorted_feature_weights], align='center')
+plt.yticks(range(len(sorted_feature_weights)),[feature for feature, weight in sorted_feature_weights])
+plt.xlabel('Feature Weight')
+plt.title('Logistical Regression - All Features')
+plt.show()
+
