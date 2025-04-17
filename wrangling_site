@@ -1,0 +1,61 @@
+### User site data was only avaialble in raw form. As such it needed wragling to make meaning. The below code snips demonstrate some wrangling done. 
+
+/* this code uses a dates table and create one date for every possible day a student could log in and then indicates if the enrollment_id had an activity in the site data for that date. This is used to determine if a students logged on that day */ 
+
+select 
+    ce.enrollment_id, 
+    d.dt, 
+    r.event_time::DATE as login_date,
+    DATEDIFF('day', ce.program_start_date, d.dt) enrollment_day,
+    DATE_TRUNC('week', d.dt) as login_week,
+    count(distinct DATE_TRUNC('hour',event_time)) as daily_activity_hours
+from dates d
+full join 
+    enrollments ce
+on
+    d.dt >= ce.enrollment_timestamp and d.dt <= nvl(ce.program_actual_end_date, GETDATE()) -- limits for time active to now
+left join
+    site_events r 
+on 
+    d.dt = r.event_time::DATE and ce.enrollment_id = r.enrollment_id
+where ce.program_start_date >= '2022-01-01'
+	 and course not ilike '%career%'
+	 and course not ilike '%prep%'
+	 and course not ilike '%trial%'
+group by 1,2,3,4,5,6,7,8,9,10,11
+order by 1,2
+
+
+/* I then created a quant count of site events for each day here is an example of this */ 
+
+select 
+    enrollment_id
+        ,submission_completed_timestamp:: DATE as sub_date
+        --,assignment_type
+        --,assessment_type
+        ,count(assignment_id) as subs_on_date
+        ,count(distinct assignment_id) as num_assignments_subbed_on_date
+        ,SUM(case when submission_passed = 't' then 1 else 0 end) as count_passed_subs_on_date
+        ,SUM(case when submission_passed = 'f' then 1 else 0 end) as count_failed_subs_on_date
+        ,count(distinct case when submission_passed = 't' then assignment_id else NULL end) as num_passed_assignments_on_date
+from assessments ca
+where ca.program_start_date >= '2022-01-01'
+group by 1,2 
+order by 1,2
+
+select 
+	tre.enrollment_id, 
+    event_time::DATE,
+    sum(case when view_view_name = 'curriculum' then 1 else 0 end) as curriculum_views,
+    sum(case when view_view_name = 'welcome popup modal' then 1 else 0 end) as welcome_pop_views,
+    sum(case when view_view_name = 'dashboard' then 1 else 0 end) as dashboard_views,
+    sum(case when view_view_name = 'open sessions' then 1 else 0 end) as open_sessions_views,
+    sum(case when view_view_name = 'page' then 1 else 0 end) as page_views
+from events tre
+left join
+	enrollments ce
+on
+	ce.enrollment_id = tre.enrollment_id 
+where event_time::date >= '2022-01-01'
+group by 1,2
+order by 1,2
