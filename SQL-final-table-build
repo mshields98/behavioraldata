@@ -1,3 +1,6 @@
+##This is the final SQL code used in HEX to link the cells can calls of data that was wrangled and cleaned. You can see examples of the final table (a massive SQL Join) in which this code calls to create metrics in the repositiory. 
+
+
 select * 
     ,case when engagement_score <.33 then 'red' 
         when engagement_score >=.33 and engagement_score <.66 then 'yellow'
