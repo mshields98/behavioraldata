@@ -1,0 +1,15 @@
+### Samples of data wrangling to create weekly data pulls in CTE's that can be joined on for a final table
+
+## Get the number of RSVP's and dates from mentor zoom sessions
+select  
+  rsvp.contact_id
+, c.enrollment_id
+, 
+from rsvp
+left join  enrollements c 
+on rsvp.contact_id = csce.contact_id and rsvp.created_asof between csce.program_start_date and  csce.program_actual_end_date
+ --and (csce.course_code  ilike '%501%' or csce.course_code  ilike '%201%')-- This removes some courses where mentorship is not an option
+ and (csce.course_code not ilike '%prep%' and csce.course_code not ilike '%trial%' and course_code not ilike '%career%')
+left join odsdb.tf_open_sessions as otos
+  on otos.id = rsvp.open_session_id
+ order by rsvp.contact_id, start_dt
